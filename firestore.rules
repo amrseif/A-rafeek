@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+
+    // User Study Plans (isolated per user)
+    match /users/{userId}/studyPlans/{planId} {
+      allow read, write, delete: if isOwner(userId);
+    }
+
+    // OTP verification store
+    match /verification_codes/{email} {
+      allow read, write: if true; // Managed via app auth flow
+    }
+  }
+}
